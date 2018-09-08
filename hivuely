@@ -1,0 +1,44 @@
+#!/usr/bin/php
+<?php
+
+if ($argc != 4)
+	die("Usage: hivuely componentFolder jsOutputFile cssOutputFile\n");
+
+$inputFolder = $argv[1];
+$jsOutput = $argv[2];
+$cssOutput = $argv[3];
+
+@unlink($jsOutput);
+@unlink($cssOutput);
+
+$d = dir($inputFolder);
+while (false !== ($entry = $d->read()))
+{
+	if ($entry == '.' || $entry == '..' ||
+		strtolower(substr(strrchr($entry, '.'),1)) != 'vue')
+		continue;
+  	processVueFile($inputFolder.'/'.$entry);
+}
+$d->close();
+
+function getSection($data, $tag)
+{
+	$section = explode("<$tag>", $data);
+	return explode("</$tag>", $section[1])[0];
+}
+
+function processVueFile($inputFile)
+{
+	global $jsOutput, $cssOutput;
+
+	$data = file_get_contents($inputFile);
+
+	$script = getSection($data, 'script');
+	$tmplt = getSection($data, 'template');
+	$style = getSection($data, 'style');
+	
+	$script = str_replace('``', '`'.$tmplt.'`', $script);
+	
+	file_put_contents($jsOutput, $script, FILE_APPEND);
+	file_put_contents($cssOutput, $style, FILE_APPEND);
+}
